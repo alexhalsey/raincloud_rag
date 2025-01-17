@@ -1,4 +1,5 @@
 import os
+from pydantic_settings import BaseSettings
 
 from llama_index.core.indices.vector_store.base import VectorStoreIndex
 from llama_index.vector_stores.qdrant import QdrantVectorStore
@@ -16,6 +17,21 @@ from copy import deepcopy
 
 Settings.embed_model = FastEmbedEmbedding(model_name="BAAI/bge-base-en-v1.5")
 embedding_model = Settings.embed_model
+
+class Config(BaseSettings):
+    """configuration management using pydantic."""
+
+    openai_api_key: str
+    cohere_api_key: str
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "allow"
+
+def get_config() -> Config:
+    """load and return configuration."""
+    return Config()
 
 def generate_completion_to_prompt(system_prompt):
     """
@@ -118,12 +134,12 @@ def get_retriever(retriever_kwargs):
 
     return retriever
 
-def get_reranker(reranker_kwargs):
+def get_reranker(reranker_kwargs, config):
 
     # reranker!
     # https://docs.llamaindex.ai/en/stable/examples/node_postprocessor/SentenceTransformerRerank/
     top_n = reranker_kwargs["top_n"]
-    reranker = CohereRerank(api_key=os.environ["COHERE_API_KEY"], 
+    reranker = CohereRerank(api_key=config.cohere_api_key, 
                             top_n=top_n)
 
     # reranker = SentenceTransformerRerank(
@@ -163,6 +179,8 @@ class RAGQueryEngine(CustomQueryEngine):
         return response, retrieved_nodes, source_nodes, final_prompt
 
 def execute_rag(pipeline_kwargs, pipeline_objs):
+    config = get_config()
+    os.environ["OPENAI_API_KEY"] = config.openai_api_key
 
     # parse the pipeline args
     user_prompt = pipeline_kwargs["user_prompt"]

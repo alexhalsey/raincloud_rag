@@ -1,23 +1,21 @@
-import os
-os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-os.environ["COHERE_API_KEY"] = os.getenv("COHERE_API_KEY")
-
 from dataclasses import dataclass
 from typing import Dict, Any, Optional
-
+import os
 import streamlit as st
 from llama_index.core import Settings
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
 from llama_index.llms.openai import OpenAI
 
 from rag_dev import (
+    Config,
+    get_config,
     execute_rag,
     get_retriever,
     get_reranker,
     generate_completion_to_prompt
 )
 
-COLLECTIONS = ["cyber_wiki"]
+COLLECTIONS = ["cyber_wiki", "cyber_arxiv"]
 DEFAULT_TEMPERATURE = 0.5
 DEFAULT_K = 5
 DEFAULT_N = 3
@@ -41,6 +39,7 @@ class PipelineState:
         self.retriever = None
         self.reranker = None
         self.config = None
+        self.env_config = get_config()
 
     def update_if_needed(self, new_config: PipelineConfig) -> None:
         if not self.config or self._config_changed(new_config):
@@ -58,6 +57,7 @@ class PipelineState:
         )
 
     def _reinitialize(self, config: PipelineConfig) -> None:
+        os.environ["OPENAI_API_KEY"] = self.env_config.openai_api_key
         if not self.config or self.config.temperature != config.temperature:
             Settings.llm = OpenAI(
                 model="gpt-4o-mini",
@@ -75,7 +75,7 @@ class PipelineState:
             })
 
         if not self.config or self.config.num_rerank != config.num_rerank:
-            self.reranker = get_reranker({"top_n": config.num_rerank})
+            self.reranker = get_reranker({"top_n": config.num_rerank}, self.env_config)
 
 def init_session_state():
     if "messages" not in st.session_state:
@@ -132,8 +132,12 @@ def handle_chat_input(config: PipelineConfig):
 
 def main():
     init_session_state()
-    st.set_page_config(page_title="RAG Cybersecurity Chatbot", layout="wide")
-    st.title("RAG Cybersecurity Chatbot")
+    st.set_page_config(page_title="RainCloudRAG", layout="wide")
+    st.title("Welcome to RainCloud RAG!")
+
+    # load configuration at startup
+    env_config = get_config()
+    os.environ["OPENAI_API_KEY"] = env_config.openai_api_key
 
     config = PipelineConfig(
         temperature=st.sidebar.slider("LLM Temperature", 0.0, 1.0, DEFAULT_TEMPERATURE, 0.1),

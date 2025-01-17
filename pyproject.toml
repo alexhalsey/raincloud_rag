@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "paper-rag"
+name = "raincloud_rag"
 version = "0.1.0"
 description = "Experimenting with RAG approaches for ArXiv and Wikipedia datasets"
 authors = ["alexhalsey <alexander.halsey@utexas.edu>"]
@@ -19,6 +19,8 @@ llama-index-embeddings-fastembed = "^0.2.0"
 datasets = "^3.0.2"
 llama-index-postprocessor-cohere-rerank = "^0.2.1"
 streamlit = "^1.41.1"
+arxiv = "^2.1.3"
+pydantic-settings = "^2.7.1"
 
 
 [tool.poetry.group.dev.dependencies]
